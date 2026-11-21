@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>ClipSync Studio</title>
+<style>
+  :root {
+    --bg: #121212;
+    --panel: #1e1e1e;
+    --border: #333;
+    --text: #e0e0e0;
+    --muted: #999;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --success: #10b981;
+    --yt: #ff0033;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .top-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+  .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .restore-banner {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #93c5fd;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .restore-banner.show { display: block; }
+  .file-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .file-row.single-mode {
+    grid-template-columns: 1fr;
+  }
+  .file-row.single-mode #fileCardB {
+    display: none;
+  }
+  .file-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .file-card label {
+    display: block;
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+  .source-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .source-tab {
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #ccc;
+    cursor: pointer;
+  }
+  .source-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: bold;
+  }
+  .source-tab.yt.active {
+    background: var(--yt);
+    border-color: var(--yt);
+    color: #fff;
+  }
+  .yt-input-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .yt-input-group input {
+    flex: 1;
+    min-width: 0;
+  }
+  .hash-text {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 6px;
+    word-break: break-all;
+  }
+  .video-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .video-grid.single-mode {
+    grid-template-columns: 1fr;
+  }
+  .video-grid.single-mode #cardB {
+    display: none;
+  }
+  .video-grid.expanded-a { grid-template-columns: 3fr 1fr; }
+  .video-grid.expanded-b { grid-template-columns: 1fr 3fr; }
+  .video-card {
+    background: #000;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+  }
+  .video-card.active {
+    border-color: var(--accent);
+  }
+  .video-card:fullscreen,
+  .video-card:-webkit-full-screen {
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    border-radius: 0;
+    background: #000;
+  }
+  .video-card:fullscreen .media-stage,
+  .video-card:-webkit-full-screen .media-stage {
+    height: calc(100vh - 38px);
+    max-height: none;
+  }
+  .video-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: rgba(30, 30, 30, 0.95);
+    font-size: 0.85rem;
+    height: 38px;
+    z-index: 2;
+  }
+  .badge {
+    background: #333;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.8rem;
+  }
+  .badge.active-audio {
+    background: var(--accent);
+    color: #fff;
+  }
+  .media-stage {
+    position: relative;
+    width: 100%;
+    height: 360px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+    display: block;
+  }
+  .yt-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: none;
+  }
+  .yt-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    pointer-events: none;
+  }
+  .yt-click-shield {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: transparent;
+  }
+  .controls-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .seek-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  #seekBar {
+    flex: 1;
+    cursor: pointer;
+  }
+  .time-display {
+    font-family: monospace;
+    font-size: 0.9rem;
+    min-width: 110px;
+    text-align: right;
+  }
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  button {
+    background: #2c2c2c;
+    color: var(--text);
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button:hover { background: #3a3a3a; }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: bold;
+  }
+  button.primary:hover { background: var(--accent-hover); }
+  button.danger {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: var(--danger);
+    color: #fca5a5;
+  }
+  button.danger:hover {
+    background: var(--danger);
+    color: #fff;
+  }
+  button.cache-btn {
+    background: #1e293b;
+    border-color: #475569;
+    color: #cbd5e1;
+    font-size: 0.8rem;
+  }
+  button.cache-btn:hover { background: #334155; }
+  input[type="number"], input[type="text"], input[type="file"] {
+    background: #141414;
+    color: var(--text);
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.85rem;
+  }
+  input[type="number"] { width: 70px; text-align: right; }
+  .status-msg {
+    font-size: 0.8rem;
+    color: #60a5fa;
+    min-height: 1.2em;
+  }
+  .comments-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .comments-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .comments-header h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .io-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+  .comment-input-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .back-sec-box {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #181818;
+    border: 1px solid #3b3b3b;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    color: #cbd5e1;
+  }
+  .back-sec-box input {
+    width: 56px;
+    padding: 3px 6px;
+  }
+  .comment-input-row input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th, td {
+    border-bottom: 1px solid var(--border);
+    padding: 8px;
+    text-align: left;
+  }
+  th { color: var(--muted); font-weight: 600; }
+  .time-link {
+    color: #60a5fa;
+    cursor: pointer;
+    font-family: monospace;
+    text-decoration: underline;
+  }
+  .hidden { display: none !important; }
+  @media (max-width: 768px) {
+    .file-row, .video-grid { grid-template-columns: 1fr; }
+    .media-stage { height: 240px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-header">
+  <h1>ClipSync Studio</h1>
+  <div class="header-actions">
+    <button id="toggleAngleBBtn">B枠 表示/非表示</button>
+    <button id="clearCacheBtn" class="cache-btn" title="ブラウザキャッシュを破棄して再読込します（LocalStorageのコメントは消えません）">キャッシュクリア再読込</button>
+    <button id="clearAllStorageBtn" class="danger" title="ブラウザに保存された全動画のコメント・設定データを完全に削除します">LocalStorage全削除</button>
+  </div>
+</div>
+
+<div id="restoreBanner" class="restore-banner"></div>
+
+<div class="file-row" id="fileRow">
+  <!-- Angle A Source -->
+  <div class="file-card" id="fileCardA">
+    <label>左：アングル A（基準）</label>
+    <div class="source-tabs">
+      <button type="button" class="source-tab active" id="tabLocalA">ローカル動画</button>
+      <button type="button" class="source-tab yt" id="tabYtA">YouTube URL</button>
+    </div>
+    <div id="localBoxA">
+      <input type="file" id="fileA" accept="video/*,.mp4,.webm,.mov,.mkv,.avi,.m4v">
+    </div>
+    <div id="ytBoxA" class="yt-input-group hidden">
+      <input type="text" id="ytUrlA" placeholder="https://www.youtube.com/watch?v=... または動画ID">
+      <button type="button" id="loadYtABtn" class="primary">読込</button>
+    </div>
+    <div class="hash-text" id="hashA">キー: 未選択</div>
+  </div>
+
+  <!-- Angle B Source -->
+  <div class="file-card" id="fileCardB">
+    <label>右：アングル B（補正対象・任意）</label>
+    <div class="source-tabs">
+      <button type="button" class="source-tab active" id="tabLocalB">ローカル動画</button>
+      <button type="button" class="source-tab yt" id="tabYtB">YouTube URL</button>
+    </div>
+    <div id="localBoxB">
+      <input type="file" id="fileB" accept="video/*,.mp4,.webm,.mov,.mkv,.avi,.m4v">
+    </div>
+    <div id="ytBoxB" class="yt-input-group hidden">
+      <input type="text" id="ytUrlB" placeholder="https://www.youtube.com/watch?v=... または動画ID">
+      <button type="button" id="loadYtBBtn" class="primary">読込</button>
+    </div>
+    <div class="hash-text" id="hashB">キー: 未選択</div>
+  </div>
+</div>
+
+<div class="video-grid" id="videoGrid">
+  <div class="video-card active" id="cardA">
+    <div class="video-header">
+      <span class="badge active-audio" id="badgeA">アングル A（音声ON）</span>
+      <span class="badge" id="rateA">1.0x</span>
+    </div>
+    <div class="media-stage">
+      <video id="videoA" playsinline preload="metadata"></video>
+      <div class="yt-wrapper" id="ytWrapA">
+        <div id="ytPlayerA"></div>
+        <div class="yt-click-shield"></div>
+      </div>
+    </div>
+  </div>
+  <div class="video-card" id="cardB">
+    <div class="video-header">
+      <span class="badge" id="badgeB">アングル B（クリックで拡大・音声切替）</span>
+      <span class="badge" id="rateB">1.0x</span>
+    </div>
+    <div class="media-stage">
+      <video id="videoB" playsinline preload="metadata"></video>
+      <div class="yt-wrapper" id="ytWrapB">
+        <div id="ytPlayerB"></div>
+        <div class="yt-click-shield"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="controls-panel">
+  <div class="seek-row">
+    <input type="range" id="seekBar" min="0" max="100" step="0.01" value="0">
+    <div class="time-display" id="timeDisplay">0:00 / 0:00</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="primary" id="playPauseBtn">再生 (Space)</button>
+    <button id="toggleAudioBtn">音声切替 (A/B)</button>
+    <button id="resetSizeBtn">同サイズ (Esc)</button>
+    <button id="fullscreenBtn">アクティブ画面を全画面 (F)</button>
+  </div>
+
+  <div class="btn-row">
+    <strong>B オフセット(秒)：</strong>
+    <button data-offset="-1.0">-1.0s</button>
+    <button data-offset="-0.1">-0.1s</button>
+    <input type="number" id="offsetInput" step="0.1" value="0.0">
+    <button data-offset="0.1">+0.1s</button>
+    <button data-offset="1.0">+1.0s</button>
+    <button id="resetOffsetBtn">0戻し</button>
+  </div>
+
+  <div class="btn-row">
+    <strong>↑/↓ スキップ秒数：</strong>
+    <input type="number" id="skipInput" min="1" max="60" step="1" value="5">
+    <span>秒（↑/↓短押し:スキップ / 長押し:2倍速・0.5倍速）</span>
+  </div>
+
+  <div class="status-msg" id="statusMsg">待機中：ローカル動画またはYouTube URLを選択してください（アングルA単独でも動作します）。</div>
+</div>
+
+<div class="comments-panel">
+  <div class="comments-header">
+    <h3>タイムスタンプ付きコメント（アングル A 基準）</h3>
+    <div class="io-buttons">
+      <label><input type="checkbox" id="autoSaveChk" checked> 自動保存有効</label>
+      <button id="exportJsonBtn">JSONエクスポート</button>
+      <button id="importJsonBtn">JSONインポート</button>
+      <button id="exportCsvBtn">CSVエクスポート</button>
+      <button id="importCsvBtn">CSVインポート</button>
+      <button class="danger" id="clearHistoryBtn">現在の動画の履歴クリア</button>
+      <button id="toggleCommentsBtn">閉じる</button>
+    </div>
+  </div>
+
+  <input type="file" id="importJsonFile" accept=".json,application/json" class="hidden">
+  <input type="file" id="importCsvFile" accept=".csv,text/csv" class="hidden">
+
+  <div id="commentsBody">
+    <div class="comment-input-row">
+      <div class="back-sec-box" title="現在の再生位置から指定した秒数だけ前の時刻として記録します">
+        <span>記録戻し:</span>
+        <input type="number" id="commentBackSec" min="0" max="600" step="0.5" value="0">
+        <span>秒前</span>
+      </div>
+      <input type="text" id="commentText" placeholder="コメントを入力（Enterで現在の時刻から指定秒数前に記録）">
+      <button class="primary" id="addCommentBtn">コメント追加</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 120px;">時刻 (Angle A)</th>
+          <th>コメント</th>
+          <th style="width: 90px;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="commentTableBody">
+        <tr><td colspan="3" style="text-align:center; color:#888;">コメントはまだありません</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- YouTube IFrame Player API -->
+<script src="https://www.youtube.com/iframe_api"></script>
+
+<script>
+(function() {
+  const videoA = document.getElementById('videoA');
+  const videoB = document.getElementById('videoB');
+  const ytWrapA = document.getElementById('ytWrapA');
+  const ytWrapB = document.getElementById('ytWrapB');
+
+  const fileA = document.getElementById('fileA');
+  const fileB = document.getElementById('fileB');
+  const ytUrlA = document.getElementById('ytUrlA');
+  const ytUrlB = document.getElementById('ytUrlB');
+  const loadYtABtn = document.getElementById('loadYtABtn');
+  const loadYtBBtn = document.getElementById('loadYtBBtn');
+
+  const tabLocalA = document.getElementById('tabLocalA');
+  const tabYtA = document.getElementById('tabYtA');
+  const localBoxA = document.getElementById('localBoxA');
+  const ytBoxA = document.getElementById('ytBoxA');
+
+  const tabLocalB = document.getElementById('tabLocalB');
+  const tabYtB = document.getElementById('tabYtB');
+  const localBoxB = document.getElementById('localBoxB');
+  const ytBoxB = document.getElementById('ytBoxB');
+
+  const hashAEl = document.getElementById('hashA');
+  const hashBEl = document.getElementById('hashB');
+  const cardA = document.getElementById('cardA');
+  const cardB = document.getElementById('cardB');
+  const badgeA = document.getElementById('badgeA');
+  const badgeB = document.getElementById('badgeB');
+  const rateAEl = document.getElementById('rateA');
+  const rateBEl = document.getElementById('rateB');
+  const videoGrid = document.getElementById('videoGrid');
+  const fileRow = document.getElementById('fileRow');
+  const toggleAngleBBtn = document.getElementById('toggleAngleBBtn');
+  const restoreBanner = document.getElementById('restoreBanner');
+  const clearCacheBtn = document.getElementById('clearCacheBtn');
+  const clearAllStorageBtn = document.getElementById('clearAllStorageBtn');
+
+  const seekBar = document.getElementById('seekBar');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+  const resetSizeBtn = document.getElementById('resetSizeBtn');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  const offsetInput = document.getElementById('offsetInput');
+  const resetOffsetBtn = document.getElementById('resetOffsetBtn');
+  const skipInput = document.getElementById('skipInput');
+  const statusMsg = document.getElementById('statusMsg');
+
+  const autoSaveChk = document.getElementById('autoSaveChk');
+  const exportJsonBtn = document.getElementById('exportJsonBtn');
+  const importJsonBtn = document.getElementById('importJsonBtn');
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  const importCsvBtn = document.getElementById('importCsvBtn');
+  const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+  const toggleCommentsBtn = document.getElementById('toggleCommentsBtn');
+  const importJsonFile = document.getElementById('importJsonFile');
+  const importCsvFile = document.getElementById('importCsvFile');
+  const commentsBody = document.getElementById('commentsBody');
+  const commentBackSec = document.getElementById('commentBackSec');
+  const commentText = document.getElementById('commentText');
+  const addCommentBtn = document.getElementById('addCommentBtn');
+  const commentTableBody = document.getElementById('commentTableBody');
+
+  const STORAGE_PREFIX = 'multiangle_player_v1_';
+  const LAST_META_KEY = STORAGE_PREFIX + 'last_session_meta';
+
+  let hashA = '';
+  let hashB = '';
+  let nameA = '';
+  let nameB = '';
+  let activeAngle = 'A';
+  let isSeeking = false;
+  let comments = [];
+  let urlA = null;
+  let urlB = null;
+  let isAngleBHidden = false;
+
+  // Source modes: 'local' or 'youtube'
+  let modeA = 'local';
+  let modeB = 'local';
+
+  // YouTube Player instances and readiness
+  let ytApiReady = false;
+  let ytPlayerA = null;
+  let ytPlayerB = null;
+  let ytReadyA = false;
+  let ytReadyB = false;
+  let pendingYtIdA = null;
+  let pendingYtIdB = null;
+  let ytTimer = null;
+
+  function setStatus(msg, isError) {
+    statusMsg.textContent = msg;
+    statusMsg.style.color = isError ? '#f87171' : '#60a5fa';
+  }
+
+  // --- YouTube API Callback ---
+  window.onYouTubeIframeAPIReady = function() {
+    ytApiReady = true;
+    if (pendingYtIdA) {
+      createOrLoadYtPlayer('A', pendingYtIdA);
+      pendingYtIdA = null;
+    }
+    if (pendingYtIdB) {
+      createOrLoadYtPlayer('B', pendingYtIdB);
+      pendingYtIdB = null;
+    }
+  };
+
+  function extractYouTubeId(input) {
+    if (!input) return null;
+    const trimmed = input.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,
+      /[?&]v=([a-zA-Z0-9_-]{11})/
+    ];
+    for (const p of patterns) {
+      const m = trimmed.match(p);
+      if (m && m[1]) return m[1];
+    }
+    return null;
+  }
+
+  function createOrLoadYtPlayer(angle, videoId) {
+    if (!ytApiReady || typeof YT === 'undefined' || !YT.Player) {
+      if (angle === 'A') pendingYtIdA = videoId;
+      else pendingYtIdB = videoId;
+      setStatus('YouTube APIを読み込み中です。少々お待ちください...');
+      return;
+    }
+
+    if (angle === 'A') {
+      if (ytPlayerA && ytReadyA) {
+        ytPlayerA.loadVideoById(videoId);
+        ytPlayerA.pauseVideo();
+        onSourceReadyA('yt_' + videoId, 'YouTube (' + videoId + ')');
+      } else {
+        ytPlayerA = new YT.Player('ytPlayerA', {
+          videoId: videoId,
+          playerVars: {
+            controls: 0,
+            disablekb: 1,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            origin: window.location.origin && window.location.origin !== 'null' ? window.location.origin : undefined
+          },
+          events: {
+            onReady: function(e) {
+              ytReadyA = true;
+              e.target.pauseVideo();
+              updateAudioState();
+              onSourceReadyA('yt_' + videoId, 'YouTube (' + videoId + ')');
+            },
+            onStateChange: function(e) {
+              if (e.data === YT.PlayerState.PLAYING) {
+                playPauseBtn.textContent = '一時停止 (Space)';
+                startYtLoop();
+              } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.ENDED) {
+                if (!isPlayingA()) {
+                  playPauseBtn.textContent = '再生 (Space)';
+                  stopYtLoop();
+                }
+              }
+            },
+            onError: function(e) {
+              setStatus('YouTube A エラー (コード: ' + e.data + ')：埋め込みが許可されていない動画の可能性があります。', true);
+            }
+          }
+        });
+      }
+    } else {
+      if (ytPlayerB && ytReadyB) {
+        ytPlayerB.loadVideoById(videoId);
+        ytPlayerB.pauseVideo();
+        onSourceReadyB('yt_' + videoId, 'YouTube (' + videoId + ')');
+      } else {
+        ytPlayerB = new YT.Player('ytPlayerB', {
+          videoId: videoId,
+          playerVars: {
+            controls: 0,
+            disablekb: 1,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            origin: window.location.origin && window.location.origin !== 'null' ? window.location.origin : undefined
+          },
+          events: {
+            onReady: function(e) {
+              ytReadyB = true;
+              e.target.pauseVideo();
+              updateAudioState();
+              onSourceReadyB('yt_' + videoId, 'YouTube (' + videoId + ')');
+            },
+            onError: function(e) {
+              setStatus('YouTube B エラー (コード: ' + e.data + ')：埋め込みが許可されていない動画の可能性があります。', true);
+            }
+          }
+        });
+      }
+    }
+  }
+
+  function startYtLoop() {
+    if (ytTimer) return;
+    ytTimer = setInterval(function() {
+      updateTimeUI();
+      syncBToA(false);
+    }, 100);
+  }
+
+  function stopYtLoop() {
+    if (ytTimer) {
+      clearInterval(ytTimer);
+      ytTimer = null;
+    }
+  }
+
+  // --- Unified Media Abstractions (Local Video vs YouTube) ---
+  function hasSourceA() {
+    if (modeA === 'local') return !!videoA.src && videoA.readyState >= 1;
+    return ytReadyA && ytPlayerA && typeof ytPlayerA.getDuration === 'function';
+  }
+
+  function hasSourceB() {
+    if (modeB === 'local') return !!videoB.src && videoB.readyState >= 1;
+    return ytReadyB && ytPlayerB && typeof ytPlayerB.getDuration === 'function';
+  }
+
+  function getCurrentTimeA() {
+    if (modeA === 'local') return videoA.currentTime || 0;
+    if (ytReadyA && ytPlayerA && ytPlayerA.getCurrentTime) return ytPlayerA.getCurrentTime() || 0;
+    return 0;
+  }
+
+  function getDurationA() {
+    if (modeA === 'local') return isFinite(videoA.duration) ? videoA.duration : 0;
+    if (ytReadyA && ytPlayerA && ytPlayerA.getDuration) return ytPlayerA.getDuration() || 0;
+    return 0;
+  }
+
+  function setCurrentTimeA(sec) {
+    const dur = getDurationA();
+    const target = Math.max(0, dur > 0 ? Math.min(sec, dur) : sec);
+    if (modeA === 'local') {
+      if (videoA.src && videoA.readyState >= 1) videoA.currentTime = target;
+    } else if (ytReadyA && ytPlayerA && ytPlayerA.seekTo) {
+      ytPlayerA.seekTo(target, true);
+    }
+  }
+
+  function getCurrentTimeB() {
+    if (modeB === 'local') return videoB.currentTime || 0;
+    if (ytReadyB && ytPlayerB && ytPlayerB.getCurrentTime) return ytPlayerB.getCurrentTime() || 0;
+    return 0;
+  }
+
+  function getDurationB() {
+    if (modeB === 'local') return isFinite(videoB.duration) ? videoB.duration : 0;
+    if (ytReadyB && ytPlayerB && ytPlayerB.getDuration) return ytPlayerB.getDuration() || 0;
+    return 0;
+  }
+
+  function setCurrentTimeB(sec) {
+    const dur = getDurationB();
+    const target = Math.max(0, dur > 0 ? Math.min(sec, dur) : sec);
+    if (modeB === 'local') {
+      if (videoB.src && videoB.readyState >= 1) videoB.currentTime = target;
+    } else if (ytReadyB && ytPlayerB && ytPlayerB.seekTo) {
+      ytPlayerB.seekTo(target, true);
+    }
+  }
+
+  function isPlayingA() {
+    if (modeA === 'local') return !videoA.paused && !videoA.ended;
+    if (ytReadyA && ytPlayerA && ytPlayerA.getPlayerState) {
+      return ytPlayerA.getPlayerState() === YT.PlayerState.PLAYING;
+    }
+    return false;
+  }
+
+  function playA() {
+    if (modeA === 'local') {
+      return videoA.play().catch(function(err) {
+        setStatus('再生エラー: ' + err.message, true);
+      });
+    } else if (ytReadyA && ytPlayerA && ytPlayerA.playVideo) {
+      ytPlayerA.playVideo();
+      startYtLoop();
+    }
+  }
+
+  function pauseA() {
+    if (modeA === 'local') {
+      videoA.pause();
+    } else if (ytReadyA && ytPlayerA && ytPlayerA.pauseVideo) {
+      ytPlayerA.pauseVideo();
+      stopYtLoop();
+    }
+  }
+
+  function playB() {
+    if (!hasSourceB()) return;
+    if (modeB === 'local') {
+      videoB.play().catch(function(){});
+    } else if (ytReadyB && ytPlayerB && ytPlayerB.playVideo) {
+      ytPlayerB.playVideo();
+    }
+  }
+
+  function pauseB() {
+    if (!hasSourceB()) return;
+    if (modeB === 'local') {
+      videoB.pause();
+    } else if (ytReadyB && ytPlayerB && ytPlayerB.pauseVideo) {
+      ytPlayerB.pauseVideo();
+    }
+  }
+
+  function setRateAll(rate) {
+    if (modeA === 'local') {
+      videoA.playbackRate = rate;
+    } else if (ytReadyA && ytPlayerA && ytPlayerA.setPlaybackRate) {
+      ytPlayerA.setPlaybackRate(rate);
+    }
+
+    if (modeB === 'local') {
+      videoB.playbackRate = rate;
+    } else if (ytReadyB && ytPlayerB && ytPlayerB.setPlaybackRate) {
+      ytPlayerB.setPlaybackRate(rate);
+    }
+    rateAEl.textContent = rate.toFixed(1) + 'x';
+    rateBEl.textContent = rate.toFixed(1) + 'x';
+  }
+
+  function updateAudioState() {
+    const muteA = (activeAngle !== 'A');
+    const muteB = (activeAngle !== 'B');
+
+    videoA.muted = muteA;
+    if (ytReadyA && ytPlayerA) {
+      if (muteA && ytPlayerA.mute) ytPlayerA.mute();
+      else if (!muteA && ytPlayerA.unMute) ytPlayerA.unMute();
+    }
+
+    videoB.muted = muteB;
+    if (ytReadyB && ytPlayerB) {
+      if (muteB && ytPlayerB.mute) ytPlayerB.mute();
+      else if (!muteB && ytPlayerB.unMute) ytPlayerB.unMute();
+    }
+  }
+
+  // --- Source Mode Switching ---
+  function switchSourceMode(angle, newMode) {
+    if (angle === 'A') {
+      pauseA();
+      modeA = newMode;
+      tabLocalA.classList.toggle('active', newMode === 'local');
+      tabYtA.classList.toggle('active', newMode === 'youtube');
+      localBoxA.classList.toggle('hidden', newMode !== 'local');
+      ytBoxA.classList.toggle('hidden', newMode !== 'youtube');
+      videoA.style.display = (newMode === 'local') ? 'block' : 'none';
+      ytWrapA.style.display = (newMode === 'youtube') ? 'block' : 'none';
+    } else {
+      pauseB();
+      modeB = newMode;
+      tabLocalB.classList.toggle('active', newMode === 'local');
+      tabYtB.classList.toggle('active', newMode === 'youtube');
+      localBoxB.classList.toggle('hidden', newMode !== 'local');
+      ytBoxB.classList.toggle('hidden', newMode !== 'youtube');
+      videoB.style.display = (newMode === 'local') ? 'block' : 'none';
+      ytWrapB.style.display = (newMode === 'youtube') ? 'block' : 'none';
+    }
+    updateAudioState();
+  }
+
+  tabLocalA.addEventListener('click', function() { switchSourceMode('A', 'local'); });
+  tabYtA.addEventListener('click', function() { switchSourceMode('A', 'youtube'); });
+  tabLocalB.addEventListener('click', function() { switchSourceMode('B', 'local'); });
+  tabYtB.addEventListener('click', function() { switchSourceMode('B', 'youtube'); });
+
+  // --- Restore Banner & Meta ---
+  function checkPreviousSession() {
+    try {
+      const raw = localStorage.getItem(LAST_META_KEY);
+      if (!raw) {
+        restoreBanner.classList.remove('show');
+        return;
+      }
+      const meta = JSON.parse(raw);
+      if (meta && (meta.nameA || meta.nameB)) {
+        const parts = [];
+        if (meta.nameA) parts.push('アングルA: ' + meta.nameA + (meta.ytUrlA ? ' [' + meta.ytUrlA + ']' : ''));
+        if (meta.nameB) parts.push('アングルB: ' + meta.nameB + (meta.ytUrlB ? ' [' + meta.ytUrlB + ']' : ''));
+        restoreBanner.textContent = '前回の記録が見つかりました（' + parts.join(' / ') + '）― 同じ動画またはURLを読み込むとコメントとオフセット設定が自動復元されます。';
+        restoreBanner.classList.add('show');
+        if (meta.ytUrlA && !ytUrlA.value) ytUrlA.value = meta.ytUrlA;
+        if (meta.ytUrlB && !ytUrlB.value) ytUrlB.value = meta.ytUrlB;
+      }
+    } catch (e) {}
+  }
+
+  function saveLastSessionMeta() {
+    try {
+      const meta = {
+        nameA: nameA,
+        nameB: nameB,
+        ytUrlA: modeA === 'youtube' ? ytUrlA.value.trim() : '',
+        ytUrlB: modeB === 'youtube' ? ytUrlB.value.trim() : '',
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(LAST_META_KEY, JSON.stringify(meta));
+    } catch (e) {}
+  }
+
+  // --- Cache Clear & LocalStorage Clear ---
+  clearCacheBtn.addEventListener('click', async function() {
+    setStatus('キャッシュをクリアして再読込しています...');
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(function(k) { return caches.delete(k); }));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(function(r) { return r.unregister(); }));
+      }
+    } catch (e) {}
+    const url = new URL(window.location.href);
+    url.searchParams.set('nocache', Date.now().toString());
+    window.location.replace(url.toString());
+  });
+
+  clearAllStorageBtn.addEventListener('click', function() {
+    if (!confirm('ブラウザの LocalStorage に保存されている本プレイヤーの全データ（全動画のコメント履歴・オフセット設定・前回記録）を完全に削除しますか？')) {
+      return;
+    }
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(STORAGE_PREFIX)) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
+      comments = [];
+      offsetInput.value = '0.0';
+      renderComments();
+      restoreBanner.classList.remove('show');
+      setStatus('LocalStorage内の全保存データを削除しました（' + keysToRemove.length + '件）。');
+    } catch (e) {
+      setStatus('LocalStorage削除エラー: ' + e.message, true);
+    }
+  });
+
+  // --- Toggle Angle B Visibility ---
+  toggleAngleBBtn.addEventListener('click', function() {
+    isAngleBHidden = !isAngleBHidden;
+    if (isAngleBHidden) {
+      videoGrid.classList.add('single-mode');
+      fileRow.classList.add('single-mode');
+      setActiveAngle('A');
+      setStatus('アングルBを非表示にしました（シングル画面モード）。');
+    } else {
+      videoGrid.classList.remove('single-mode');
+      fileRow.classList.remove('single-mode');
+      setStatus('アングルBを表示しました。');
+    }
+  });
+
+  // --- Hashing for Local Files ---
+  async function computeFileHash(file) {
+    const fallback = 'fallback_' + file.name + '_' + file.size + '_' + file.lastModified;
+    try {
+      if (!window.crypto || !window.crypto.subtle) return fallback;
+      const chunkSize = 2 * 1024 * 1024;
+      const slice = file.slice(0, Math.min(chunkSize, file.size));
+      const buffer = await slice.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function formatTime(sec) {
+    if (!isFinite(sec) || sec < 0) sec = 0;
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = Math.floor(sec % 60);
+    if (h > 0) {
+      return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  function formatTimePrecise(sec) {
+    if (!isFinite(sec) || sec < 0) sec = 0;
+    const m = Math.floor(sec / 60);
+    const s = (sec % 60).toFixed(1).padStart(4, '0');
+    return m + ':' + s;
+  }
+
+  function saveState() {
+    if (!autoSaveChk.checked || !hashA) return;
+    try {
+      const data = {
+        offset: parseFloat(offsetInput.value) || 0,
+        comments: comments
+      };
+      localStorage.setItem(STORAGE_PREFIX + hashA, JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function loadState() {
+    if (!hashA) return false;
+    try {
+      const raw = localStorage.getItem(STORAGE_PREFIX + hashA);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (typeof data.offset === 'number') {
+          offsetInput.value = data.offset.toFixed(1);
+        }
+        if (Array.isArray(data.comments)) {
+          comments = data.comments;
+        }
+        renderComments();
+        return true;
+      }
+    } catch (e) {}
+    comments = [];
+    renderComments();
+    return false;
+  }
+
+  function onSourceReadyA(key, label) {
+    hashA = key;
+    nameA = label;
+    hashAEl.textContent = 'キー: ' + key;
+    saveLastSessionMeta();
+    const restored = loadState();
+    updateTimeUI();
+    syncBToA(true);
+    setStatus('アングル A 読み込み完了（' + label + '）' + (restored ? ' ― 前回のコメント・オフセットを復元しました。' : ''));
+  }
+
+  function onSourceReadyB(key, label) {
+    hashB = key;
+    nameB = label;
+    hashBEl.textContent = 'キー: ' + key;
+    saveLastSessionMeta();
+    syncBToA(true);
+    setStatus('アングル B 読み込み完了（' + label + '）');
+  }
+
+  // --- Load Local Files ---
+  fileA.addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setStatus('アングル A（ローカル）を読み込み中: ' + file.name);
+    if (urlA) URL.revokeObjectURL(urlA);
+    urlA = URL.createObjectURL(file);
+    videoA.pause();
+    videoA.removeAttribute('src');
+    videoA.load();
+    videoA.src = urlA;
+    videoA.load();
+
+    const key = await computeFileHash(file);
+    onSourceReadyA(key, file.name);
+  });
+
+  fileB.addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setStatus('アングル B（ローカル）を読み込み中: ' + file.name);
+    if (urlB) URL.revokeObjectURL(urlB);
+    urlB = URL.createObjectURL(file);
+    videoB.pause();
+    videoB.removeAttribute('src');
+    videoB.load();
+    videoB.src = urlB;
+    videoB.load();
+
+    const key = await computeFileHash(file);
+    onSourceReadyB(key, file.name);
+  });
+
+  // --- Load YouTube URLs ---
+  loadYtABtn.addEventListener('click', function() {
+    const vid = extractYouTubeId(ytUrlA.value);
+    if (!vid) {
+      setStatus('有効なYouTube URLまたは11桁の動画IDを入力してください。', true);
+      return;
+    }
+    setStatus('YouTube A を読み込み中: ' + vid);
+    createOrLoadYtPlayer('A', vid);
+  });
+
+  loadYtBBtn.addEventListener('click', function() {
+    const vid = extractYouTubeId(ytUrlB.value);
+    if (!vid) {
+      setStatus('有効なYouTube URLまたは11桁の動画IDを入力してください。', true);
+      return;
+    }
+    setStatus('YouTube B を読み込み中: ' + vid);
+    createOrLoadYtPlayer('B', vid);
+  });
+
+  ytUrlA.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); loadYtABtn.click(); }
+  });
+  ytUrlB.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); loadYtBBtn.click(); }
+  });
+
+  videoA.addEventListener('loadedmetadata', function() {
+    updateTimeUI();
+    syncBToA(true);
+  });
+
+  videoB.addEventListener('loadedmetadata', function() {
+    syncBToA(true);
+  });
+
+  videoA.addEventListener('error', function() {
+    const code = videoA.error ? videoA.error.code : '不明';
+    setStatus('アングル A 動画エラー (コード: ' + code + ')。非対応コーデックの可能性があります。', true);
+  });
+
+  videoB.addEventListener('error', function() {
+    const code = videoB.error ? videoB.error.code : '不明';
+    setStatus('アングル B 動画エラー (コード: ' + code + ')。非対応コーデックの可能性があります。', true);
+  });
+
+  function syncBToA(force) {
+    if (!hasSourceB()) return;
+    const offset = parseFloat(offsetInput.value) || 0;
+    const targetB = Math.max(0, getCurrentTimeA() + offset);
+    const durB = getDurationB();
+    if (durB > 0 && targetB > durB) return;
+    const diff = Math.abs(getCurrentTimeB() - targetB);
+    if (force || diff > 0.25) {
+      setCurrentTimeB(targetB);
+    }
+  }
+
+  function updateTimeUI() {
+    const cur = getCurrentTimeA();
+    const dur = getDurationA();
+    if (!isSeeking && dur > 0) {
+      seekBar.max = dur;
+      seekBar.value = cur;
+    }
+    timeDisplay.textContent = formatTime(cur) + ' / ' + formatTime(dur);
+  }
+
+  videoA.addEventListener('timeupdate', function() {
+    if (modeA !== 'local') return;
+    updateTimeUI();
+    syncBToA(false);
+  });
+
+  videoA.addEventListener('play', function() {
+    if (modeA !== 'local') return;
+    playPauseBtn.textContent = '一時停止 (Space)';
+    playB();
+  });
+
+  videoA.addEventListener('pause', function() {
+    if (modeA !== 'local') return;
+    playPauseBtn.textContent = '再生 (Space)';
+    pauseB();
+  });
+
+  function togglePlayPause() {
+    if (!hasSourceA()) {
+      setStatus('先にアングル A の動画またはYouTube URLを読み込んでください。', true);
+      return;
+    }
+    if (!isPlayingA()) {
+      playA();
+      syncBToA(true);
+      playB();
+      playPauseBtn.textContent = '一時停止 (Space)';
+    } else {
+      pauseA();
+      pauseB();
+      playPauseBtn.textContent = '再生 (Space)';
+    }
+  }
+
+  playPauseBtn.addEventListener('click', togglePlayPause);
+
+  seekBar.addEventListener('input', function() {
+    isSeeking = true;
+    const val = parseFloat(seekBar.value) || 0;
+    timeDisplay.textContent = formatTime(val) + ' / ' + formatTime(getDurationA());
+  });
+
+  seekBar.addEventListener('change', function() {
+    const val = parseFloat(seekBar.value) || 0;
+    setCurrentTimeA(val);
+    syncBToA(true);
+    isSeeking = false;
+  });
+
+  function setActiveAngle(angle) {
+    if (angle === 'B' && isAngleBHidden) return;
+    activeAngle = angle;
+    updateAudioState();
+
+    if (angle === 'A') {
+      cardA.classList.add('active');
+      cardB.classList.remove('active');
+      badgeA.classList.add('active-audio');
+      badgeB.classList.remove('active-audio');
+      badgeA.textContent = 'アングル A（音声ON）';
+      badgeB.textContent = 'アングル B（クリックで拡大・音声切替）';
+    } else {
+      cardB.classList.add('active');
+      cardA.classList.remove('active');
+      badgeB.classList.add('active-audio');
+      badgeA.classList.remove('active-audio');
+      badgeB.textContent = 'アングル B（音声ON）';
+      badgeA.textContent = 'アングル A（クリックで拡大・音声切替）';
+    }
+  }
+
+  cardA.addEventListener('click', function() {
+    setActiveAngle('A');
+    if (!isAngleBHidden) {
+      videoGrid.classList.remove('expanded-b');
+      videoGrid.classList.add('expanded-a');
+    }
+  });
+
+  cardB.addEventListener('click', function() {
+    if (isAngleBHidden) return;
+    setActiveAngle('B');
+    videoGrid.classList.remove('expanded-a');
+    videoGrid.classList.add('expanded-b');
+  });
+
+  toggleAudioBtn.addEventListener('click', function() {
+    if (isAngleBHidden) {
+      setActiveAngle('A');
+      setStatus('B枠が非表示のためアングルAの音声を維持しています。');
+      return;
+    }
+    setActiveAngle(activeAngle === 'A' ? 'B' : 'A');
+  });
+
+  resetSizeBtn.addEventListener('click', function() {
+    videoGrid.classList.remove('expanded-a', 'expanded-b');
+  });
+
+  function toggleFullscreenActive() {
+    const targetCard = (activeAngle === 'B' && !isAngleBHidden) ? cardB : cardA;
+    const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!fsElement) {
+      if (targetCard.requestFullscreen) {
+        targetCard.requestFullscreen().catch(function(err) {
+          setStatus('全画面エラー: ' + err.message, true);
+        });
+      } else if (targetCard.webkitRequestFullscreen) {
+        targetCard.webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+  }
+
+  fullscreenBtn.addEventListener('click', toggleFullscreenActive);
+
+  document.querySelectorAll('button[data-offset]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const delta = parseFloat(btn.getAttribute('data-offset'));
+      const cur = parseFloat(offsetInput.value) || 0;
+      offsetInput.value = (cur + delta).toFixed(1);
+      syncBToA(true);
+      saveState();
+    });
+  });
+
+  offsetInput.addEventListener('change', function() {
+    syncBToA(true);
+    saveState();
+  });
+
+  resetOffsetBtn.addEventListener('click', function() {
+    offsetInput.value = '0.0';
+    syncBToA(true);
+    saveState();
+  });
+
+  function renderComments() {
+    commentTableBody.innerHTML = '';
+    if (comments.length === 0) {
+      commentTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#888;">コメントはまだありません</td></tr>';
+      return;
+    }
+    comments.sort(function(a, b) { return a.time - b.time; });
+    comments.forEach(function(item, idx) {
+      const tr = document.createElement('tr');
+      const tdTime = document.createElement('td');
+      const span = document.createElement('span');
+      span.className = 'time-link';
+      span.textContent = formatTimePrecise(item.time);
+      span.addEventListener('click', function() {
+        setCurrentTimeA(item.time);
+        syncBToA(true);
+      });
+      tdTime.appendChild(span);
+
+      const tdText = document.createElement('td');
+      tdText.textContent = item.text;
+
+      const tdOp = document.createElement('td');
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '削除';
+      delBtn.className = 'danger';
+      delBtn.style.padding = '3px 8px';
+      delBtn.addEventListener('click', function() {
+        comments.splice(idx, 1);
+        saveState();
+        renderComments();
+      });
+      tdOp.appendChild(delBtn);
+
+      tr.appendChild(tdTime);
+      tr.appendChild(tdText);
+      tr.appendChild(tdOp);
+      commentTableBody.appendChild(tr);
+    });
+  }
+
+  function addComment() {
+    const txt = commentText.value.trim();
+    if (!txt) return;
+    const rawTime = getCurrentTimeA();
+    const backSec = Math.max(0, parseFloat(commentBackSec.value) || 0);
+    const recordedTime = Math.max(0, rawTime - backSec);
+    comments.push({
+      time: recordedTime,
+      text: txt
+    });
+    commentText.value = '';
+    saveState();
+    renderComments();
+    if (backSec > 0) {
+      setStatus('現在位置 (' + formatTimePrecise(rawTime) + ') から ' + backSec + '秒前 (' + formatTimePrecise(recordedTime) + ') でコメントを記録しました。');
+    }
+  }
+
+  addCommentBtn.addEventListener('click', addComment);
+  commentText.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addComment();
+    }
+  });
+
+  clearHistoryBtn.addEventListener('click', function() {
+    if (!confirm('現在選択中の動画のコメント履歴をすべて削除しますか？')) return;
+    comments = [];
+    if (hashA) {
+      try { localStorage.removeItem(STORAGE_PREFIX + hashA); } catch (e) {}
+    }
+    renderComments();
+    setStatus('現在の動画のコメント履歴を削除しました。');
+  });
+
+  toggleCommentsBtn.addEventListener('click', function() {
+    const isHidden = commentsBody.classList.toggle('hidden');
+    toggleCommentsBtn.textContent = isHidden ? '開く' : '閉じる';
+  });
+
+  function downloadBlob(content, filename, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  exportJsonBtn.addEventListener('click', function() {
+    const payload = {
+      hashA: hashA,
+      nameA: nameA,
+      offset: parseFloat(offsetInput.value) || 0,
+      comments: comments
+    };
+    downloadBlob(JSON.stringify(payload, null, 2), 'multiangle_comments.json', 'application/json');
+  });
+
+  importJsonBtn.addEventListener('click', function() { importJsonFile.click(); });
+  importJsonFile.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function() {
+      try {
+        const data = JSON.parse(reader.result);
+        if (typeof data.offset === 'number') {
+          offsetInput.value = data.offset.toFixed(1);
+          syncBToA(true);
+        }
+        if (Array.isArray(data.comments)) {
+          comments = data.comments.map(function(c) {
+            return { time: Number(c.time) || 0, text: String(c.text || '') };
+          });
+          saveState();
+          renderComments();
+          setStatus('JSONインポート完了（' + comments.length + '件）');
+        }
+      } catch (err) {
+        setStatus('JSON読み込みエラー: ' + err.message, true);
+      }
+      importJsonFile.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  exportCsvBtn.addEventListener('click', function() {
+    const lines = ['time,comment'];
+    comments.forEach(function(c) {
+      const escaped = '"' + String(c.text).replace(/"/g, '""') + '"';
+      lines.push(c.time.toFixed(2) + ',' + escaped);
+    });
+    downloadBlob('\uFEFF' + lines.join('\n'), 'multiangle_comments.csv', 'text/csv;charset=utf-8;');
+  });
+
+  importCsvBtn.addEventListener('click', function() { importCsvFile.click(); });
+  importCsvFile.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function() {
+      try {
+        const rawText = String(reader.result).replace(/^\uFEFF/, '');
+        const rows = rawText.split(/\r?\n/).filter(function(r) { return r.trim() !== ''; });
+        const imported = [];
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          if (i === 0 && row.toLowerCase().startsWith('time,')) continue;
+          const commaIdx = row.indexOf(',');
+          if (commaIdx === -1) continue;
+          const timeVal = parseFloat(row.slice(0, commaIdx));
+          let textVal = row.slice(commaIdx + 1).trim();
+          if (textVal.startsWith('"') && textVal.endsWith('"')) {
+            textVal = textVal.slice(1, -1).replace(/""/g, '"');
+          }
+          if (!isNaN(timeVal)) {
+            imported.push({ time: timeVal, text: textVal });
+          }
+        }
+        comments = imported;
+        saveState();
+        renderComments();
+        setStatus('CSVインポート完了（' + comments.length + '件）');
+      } catch (err) {
+        setStatus('CSV読み込みエラー: ' + err.message, true);
+      }
+      importCsvFile.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  // Keyboard shortcuts (Short press = skip, Long press = 2x / 0.5x speed)
+  let upTimer = null;
+  let downTimer = null;
+  let upLongPressed = false;
+  let downLongPressed = false;
+
+  document.addEventListener('keydown', function(e) {
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    if (e.code === 'Space') {
+      e.preventDefault();
+      togglePlayPause();
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      toggleFullscreenActive();
+    } else if (e.key === 'Escape') {
+      resetSizeBtn.click();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (e.repeat) return;
+      upLongPressed = false;
+      upTimer = setTimeout(function() {
+        upLongPressed = true;
+        setRateAll(2.0);
+      }, 250);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (e.repeat) return;
+      downLongPressed = false;
+      downTimer = setTimeout(function() {
+        downLongPressed = true;
+        setRateAll(0.5);
+      }, 250);
+    }
+  });
+
+  document.addEventListener('keyup', function(e) {
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    if (e.key === 'ArrowUp') {
+      clearTimeout(upTimer);
+      if (upLongPressed) {
+        setRateAll(1.0);
+      } else if (hasSourceA()) {
+        const skip = parseFloat(skipInput.value) || 5;
+        setCurrentTimeA(getCurrentTimeA() + skip);
+        syncBToA(true);
+      }
+      upLongPressed = false;
+    } else if (e.key === 'ArrowDown') {
+      clearTimeout(downTimer);
+      if (downLongPressed) {
+        setRateAll(1.0);
+      } else if (hasSourceA()) {
+        const skip = parseFloat(skipInput.value) || 5;
+        setCurrentTimeA(getCurrentTimeA() - skip);
+        syncBToA(true);
+      }
+      downLongPressed = false;
+    }
+  });
+
+  checkPreviousSession();
+})();
+</script>
+</body>
+</html>
